@@ -19,14 +19,22 @@ set(SOURCE_FILES
         MachineSystem.h
         Machine.cpp
         Machine.h
-        Machine1Factory.cpp
-        Machine1Factory.h
+        MachineAFactory.cpp
+        MachineAFactory.h
         Component.cpp
         Component.h
         Shape.cpp
         Shape.h
         Motor.cpp
         Motor.h
+        Machine1Factory.h
+        Machine1Factory.cpp
+        IRotationSink.h
+        IRotationSink.h
+        RotationSource.cpp
+        RotationSource.h
+        Pulley.cpp
+        Pulley.h
 )
 
 # Removed:

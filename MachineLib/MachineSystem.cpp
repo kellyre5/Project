@@ -8,6 +8,7 @@
 #include "Machine.h"
 #include "MachineCFactory.h"
 #include "Machine1Factory.h"
+#include "Machine1Factory.h"
 
 using namespace std;
 
@@ -17,7 +18,7 @@ using namespace std;
 MachineSystem::MachineSystem(wstring resourcesDir) : mResourcesDir(resourcesDir)
 {
     Machine1Factory factory(mResourcesDir);
-    mMachine = factory.Create();
+    mMachine = factory.Create(1);
 
     mMachine->Reset();
 
@@ -89,7 +90,7 @@ void MachineSystem::SetMachineFrame(int frame)
  * Set the expected frame rate in frames per second
  * @param rate Frame rate in frames per second
  */
-void MachineSystem::SetFrameRate([[maybe_unused]] double rate)
+void MachineSystem::SetFrameRate(double rate)
 {
     mFrameRate = rate;
 }
@@ -103,7 +104,7 @@ void MachineSystem::ChooseMachine(int machine)
     if(machine == 1 || machine == 17)
     {
         Machine1Factory factory(mResourcesDir);
-        mMachine = factory.Create();
+        mMachine = factory.Create(1);
         mMachine->Reset();
         mFrame = 0;
     }

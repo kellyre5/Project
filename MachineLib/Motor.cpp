@@ -14,31 +14,38 @@ Motor::Motor(Machine* machine, std::wstring imagesDir) : Component(machine), mIm
 {
 
     //
-    // 1) Motor box – a square that sits on the beam
+    // 1) Motor box – a rectangle that sits on the beam
+    //    Dimensions chosen to match the motor-box.png aspect ratio
     //
-    const double BoxSize = 80;     // tune this to match how big you want it
+    const double BoxWidth = 84;   // Width in centimeters
+    const double BoxHeight = 60;  // Height in centimeters (taller rectangle)
 
-    // bottom-left at (-BoxSize/2, 0), height BoxSize
-    mBox.Rectangle(-BoxSize/2, 0, BoxSize, BoxSize);
+    // Create box with bottom-left corner at origin
+    mBox.Rectangle(-BoxWidth/2, 0, BoxWidth, BoxHeight);
     mBox.SetImage(mImagesDir + L"/motor-box.png");
     mBox.SetPhysics(1.0, 0.5, 0.3);   // static collider
-    // position set later in SetPosition
 
     //
     // 2) Wheel – circle centered inside the box
+    //    Position it in the center of the box vertically
     //
-    const double WheelRadius = 30;    // tweak so circle fills the box nicely
+    const double WheelRadius = 25;    // Radius in centimeters
     mWheel.Circle(WheelRadius);
     mWheel.SetImage(mImagesDir + L"/wheel.png");
-    //mWheel.SetPhysics(1.0, 0.5, 0.3);
 
     //
-    // 3) Runner – ordinary Polygon (no physics)
-    //     bottom-centered rectangle with the idle runner sprite
+    // 3) Runner – positioned at the top of the box
+    //    The runner sprite should appear at the top of the motor box
     //
     mRunner.SetImage(mImagesDir + L"/motor-idle.png");
-    // 40x70-ish is usually nice; adjust to match the PNG
-    mRunner.BottomCenteredRectangle(40, 70);
+    // Runner dimensions - adjust to match the PNG aspect ratio
+    const double RunnerWidth = 50;
+    const double RunnerHeight = 55;
+    mRunner.BottomCenteredRectangle(RunnerWidth, RunnerHeight);
+
+    // Store box dimensions for later use
+    mBoxHeight = BoxHeight;
+    mBoxWidth = BoxWidth;
 
     mRunnerFrames[0] = mImagesDir + L"/motor-active-1.png";
     mRunnerFrames[1] = mImagesDir + L"/motor-active-2.png";
@@ -49,22 +56,19 @@ Motor::Motor(Machine* machine, std::wstring imagesDir) : Component(machine), mIm
 void Motor::SetPosition(double x, double y)
 {
     mPosition = wxPoint2DDouble(x, y);
-
     mBox.SetInitialPosition(x, y);
-    const double boxSize = 80;       // same constant as ctor
-    const double wheelCenterY = y + boxSize / 2.0;
-    //mWheel.SetInitialPosition(x, wheelCenterY);
 }
 
 void Motor::Draw(std::shared_ptr<wxGraphicsContext> graphics)
 {
     mBox.Draw(graphics);
-    const double BoxSize = 80;
-    double wheelY = mPosition.m_y + BoxSize / 2.0;
+    double wheelY = mPosition.m_y + mBoxHeight / 2.0;
+    double wheelX = mPosition.m_x - 15;
+    mWheel.DrawPolygon(graphics, wheelX, wheelY, mRotation);
 
-    mWheel.DrawPolygon(graphics, mPosition.m_x, wheelY, mRotation);
-    double runnerY = mPosition.m_y + 10;  // tweak this multiplier
-    mRunner.DrawPolygon(graphics, mPosition.m_x, runnerY, 0);
+    double runnerY = mPosition.m_y + 3;
+    double runnerX = mPosition.m_x - 15;
+    mRunner.DrawPolygon(graphics, runnerX, runnerY, 0);
 }
 
 void Motor::PhysicsInstall(b2World* world, ContactListener* contactListener)
@@ -84,15 +88,21 @@ void Motor::PhysicsInstall(b2World* world, ContactListener* contactListener)
  */
 void Motor::Reset()
 {
-
     mBox.SetInitialPosition(mPosition.m_x, mPosition.m_y);
-    //mWheel.SetInitialPosition(mPosition.m_x, mPosition.m_y);
     mRotation = 0;
-    mActive = false;
-    mSpeed = 0.1;
-    mRunnerFrame      = 0;
-    mRunnerFrameTime  = 0.0;
-    mRunner.SetImage(mImagesDir + L"/motor-idle.png");
+    mActive = mInitiallyActive;
+    mRunnerFrame = 0;
+    mSource.SetRotation(0, 0);
+    mRunnerFrameTime = 0.0;
+
+    if (mActive)
+    {
+        mRunner.SetImage(mRunnerFrames[0]);
+    }
+    else
+    {
+        mRunner.SetImage(mImagesDir + L"/motor-idle.png");
+    }
 }
 
 /**
@@ -103,14 +113,17 @@ void Motor::Update(double elapsed)
 {
     if (!mActive)
     {
+        mSource.SetRotation(mRotation, 0);
         return;
     }
-    mRotation -= mSpeed * elapsed * M_PI;
+
+    mSource.SetRotation(mRotation, mSpeed);
+
+    mRotation -= mSpeed * elapsed;
 
     mRunnerFrameTime += elapsed;
     if (mRunnerFrameTime >= mRunnerFrameDuration)
     {
-        // Advance frame and wrap around [0..3]
         mRunnerFrameTime -= mRunnerFrameDuration;
         mRunnerFrame = (mRunnerFrame + 1) % 4;
 
@@ -120,19 +133,22 @@ void Motor::Update(double elapsed)
 
 void Motor::BeginContact(b2Contact* contact)
 {
-    // Because the dispatcher only forwards contacts involving mBox's body,
-    // we already know "something hit the box" here.
 
     if (!mActive)
     {
-        // Switch motor to active state
+        // Switch motor to active
+        std::cout << "Active" << std::endl;
         mActive = true;
-
-        // Optionally change the runner sprite to a "running" version
-        // (make sure the file exists in your images folder)
-        mRunnerFrame     = 0;
+        mRunnerFrame = 0;
         mRunnerFrameTime = 0.0;
         mRunner.SetImage(mRunnerFrames[mRunnerFrame]);
     }
+}
+
+wxPoint2DDouble Motor::GetShaftPosition()
+{
+    double wheelX = mPosition.m_x - 15;
+    double wheelY = mPosition.m_y + mBoxHeight / 2.0;
+    return wxPoint2DDouble(wheelX, wheelY);
 }
 

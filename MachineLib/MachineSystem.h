@@ -11,7 +11,7 @@
 #include "IMachineSystem.h"
 
 class Machine;
-class Machine1Factory;
+class MachineAFactory;
 
 /**
  * A MAchine System class that displays machine A

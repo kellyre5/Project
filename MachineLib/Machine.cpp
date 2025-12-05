@@ -76,7 +76,7 @@ void Machine::SetMachineFrame(int frame)
 {
     mFrame = frame;
 
-    // Later: update motors, belts, pulleys, physics steps, etc.
+    // Later update motors, belts, pulleys, physics steps, etc.
 }
 
 /**
